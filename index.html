@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nossa Lista</title>
+<style>
+:root{color-scheme:light dark}
+body{margin:0;font:18px/1.5 system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;background:Canvas;color:CanvasText}
+header{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;border-bottom:1px solid #8884;font-size:14px}
+#st{opacity:.7}
+textarea{flex:1;border:0;padding:1rem;font:inherit;resize:none;outline:0;background:transparent;color:inherit}
+button{font:inherit;font-size:14px;padding:.3rem .7rem}
+</style></head><body>
+<header><b>Nossa Lista</b><span id="st">…</span><button id="cp">Copiar link</button></header>
+<textarea id="t" placeholder="Escreva aqui. Tudo é compartilhado."></textarea>
+<script>
+const API='https://jsonblob.com/api/jsonBlob',H={'Content-Type':'application/json',Accept:'application/json'};
+const t=document.getElementById('t'),st=document.getElementById('st');
+let id=location.hash.slice(1),last='',dirty=false,timer;
+const set=m=>st.textContent=m;
+async function init(){
+  if(!id){
+    const r=await fetch(API,{method:'POST',headers:H,body:JSON.stringify({t:''})});
+    id=r.headers.get('Location').split('/').pop();location.hash=id;
+  }
+  await pull();setInterval(pull,3000);
+}
+async function pull(){
+  if(dirty)return;
+  try{const d=await (await fetch(API+'/'+id,{headers:H})).json();
+    if(d.t!==last&&document.activeElement!==t||d.t!==last&&t.value===last){t.value=last=d.t}
+    set('sincronizado')}catch(e){set('offline…')}
+}
+t.addEventListener('input',()=>{dirty=true;set('salvando…');clearTimeout(timer);timer=setTimeout(push,700)});
+async function push(){
+  try{await fetch(API+'/'+id,{method:'PUT',headers:H,body:JSON.stringify({t:t.value})});
+    last=t.value;dirty=false;set('salvo')}catch(e){set('erro ao salvar – tentando…');timer=setTimeout(push,3000)}
+}
+document.getElementById('cp').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);set('link copiado')}catch(e){prompt('Link:',location.href)}};
+init();
+</script></body></html>
